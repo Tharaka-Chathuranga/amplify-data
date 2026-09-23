@@ -1,5 +1,11 @@
 # @aws-amplify/data-schema
 
+## 1.26.2
+
+### Patch Changes
+
+- d34af87: fix: observeQuery no longer throws when a subscription event has a null item
+
 ## 1.26.1
 
 ### Patch Changes
