@@ -1,4 +1,9 @@
-import type { Equal, Expect, Prettify } from '@aws-amplify/data-schema-types';
+import type {
+  DataSourceConfiguration,
+  Equal,
+  Expect,
+  Prettify,
+} from '@aws-amplify/data-schema-types';
 import {
   AuthMode,
   CustomHeaders,
@@ -77,6 +82,93 @@ describe('RDSModelSchema', () => {
 
       type _PostValidation = Expect<Equal<ValidPost, true>>;
       type _BlogValidation = Expect<Equal<ValidBlog, true>>;
+    });
+  });
+
+  describe('database authentication configuration', () => {
+    const fakeSecret = () => ({}) as any;
+
+    it('accepts the supported SQL authentication strategies', () => {
+      configure({
+        database: {
+          engine: 'postgresql',
+          connectionUri: fakeSecret(),
+          authentication: { strategy: 'rdsIam' },
+        },
+      });
+
+      configure({
+        database: {
+          engine: 'mysql',
+          connectionUri: fakeSecret(),
+          authentication: { strategy: 'rdsIam' },
+        },
+      });
+
+      configure({
+        database: {
+          engine: 'postgresql',
+          connectionUri: fakeSecret(),
+          authentication: { strategy: 'password' },
+        },
+      });
+
+      configure({
+        database: {
+          engine: 'postgresql',
+          connectionUri: fakeSecret(),
+        },
+      });
+    });
+
+    it('rejects unknown authentication strategies', () => {
+      configure({
+        database: {
+          engine: 'postgresql',
+          connectionUri: fakeSecret(),
+          // @ts-expect-error - only 'password' and 'rdsIam' are supported
+          authentication: { strategy: 'iam' },
+        },
+      });
+
+      configure({
+        database: {
+          engine: 'postgresql',
+          connectionUri: fakeSecret(),
+          // @ts-expect-error - strategy is required when authentication is set
+          authentication: {},
+        },
+      });
+    });
+
+    it('rejects authentication for DynamoDB', () => {
+      configure({
+        database: {
+          engine: 'dynamodb',
+          // @ts-expect-error - authentication is only supported for SQL data sources
+          authentication: { strategy: 'rdsIam' },
+        },
+      });
+    });
+
+    it('exposes the authentication strategy on the SQL DataSourceConfiguration type', () => {
+      type PgStrategy = NonNullable<
+        DataSourceConfiguration<'postgresql'>['authentication']
+      >['strategy'];
+      type MySqlStrategy = NonNullable<
+        DataSourceConfiguration<'mysql'>['authentication']
+      >['strategy'];
+
+      type _pg = Expect<Equal<PgStrategy, 'password' | 'rdsIam'>>;
+      type _mysql = Expect<Equal<MySqlStrategy, 'password' | 'rdsIam'>>;
+      type _ddb = Expect<
+        Equal<
+          'authentication' extends keyof DataSourceConfiguration<'dynamodb'>
+            ? true
+            : false,
+          false
+        >
+      >;
     });
   });
 });

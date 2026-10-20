@@ -16,6 +16,9 @@ export type DataSourceConfiguration<DE extends DatasourceEngine = DatasourceEngi
     identifier?: string;
     sslCert?: BackendSecret;
     minimizeRdsVpcEndpoints?: boolean;
+    authentication?: {
+        strategy: 'password' | 'rdsIam';
+    };
 };
 ```
 **References:** [DatasourceEngine](./data-schema-types.datasourceengine.md)

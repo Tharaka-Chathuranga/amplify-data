@@ -98,6 +98,21 @@ export type DataSourceConfiguration<
        * Only has an effect when vpcConfig is set.
        */
       minimizeRdsVpcEndpoints?: boolean;
+      /**
+       * How the SQL Lambda authenticates to the database. SQL data sources only.
+       *
+       * - Omitted or `{ strategy: 'password' }`: the existing behavior. `connectionUri`
+       *   carries the full credentials, e.g. `postgres://user:password@host:port/database`.
+       * - `{ strategy: 'rdsIam' }`: the database uses RDS IAM database authentication.
+       *   `connectionUri` still supplies the host, port, database name and username, but
+       *   may omit the password, e.g. `postgres://user@host:port/database`.
+       *
+       * This is metadata only. Generating IAM auth tokens and granting the IAM
+       * permissions is up to the backend packages that read this configuration.
+       */
+      authentication?: {
+        strategy: 'password' | 'rdsIam';
+      };
     };
 
 export type SchemaConfiguration<

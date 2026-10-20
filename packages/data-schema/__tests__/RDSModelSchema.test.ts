@@ -163,4 +163,79 @@ describe('RDSModelSchema', () => {
       ).toThrow();
     });
   });
+
+  describe('database authentication configuration', () => {
+    const models = () => ({
+      Post: a.model({
+        title: a.string().required(),
+      }),
+    });
+
+    it.each(['postgresql', 'mysql'] as const)(
+      'preserves rdsIam authentication metadata for %s',
+      (engine) => {
+        const connectionUri = { fake: 'secret' } as any;
+        const schema = configure({
+          database: {
+            identifier: 'some-identifier',
+            engine,
+            connectionUri,
+            authentication: { strategy: 'rdsIam' },
+          },
+        })
+          .schema(models())
+          .authorization((allow) => allow.publicApiKey());
+
+        expect(schema.data.configuration.database).toEqual({
+          identifier: 'some-identifier',
+          engine,
+          connectionUri,
+          authentication: { strategy: 'rdsIam' },
+        });
+      },
+    );
+
+    it('preserves password authentication metadata', () => {
+      const schema = configure({
+        database: {
+          engine: 'postgresql',
+          connectionUri: 'fake' as any,
+          authentication: { strategy: 'password' },
+        },
+      }).schema(models());
+
+      expect(schema.data.configuration.database.authentication).toEqual({
+        strategy: 'password',
+      });
+    });
+
+    it('leaves authentication undefined when omitted', () => {
+      const schema = configure({
+        database: {
+          engine: 'postgresql',
+          connectionUri: 'fake' as any,
+        },
+      }).schema(models());
+
+      expect(schema.data.configuration.database).not.toHaveProperty(
+        'authentication',
+      );
+    });
+
+    it('does not change the generated GraphQL schema', () => {
+      const build = (authentication?: { strategy: 'password' | 'rdsIam' }) =>
+        configure({
+          database: {
+            engine: 'postgresql',
+            connectionUri: 'fake' as any,
+            ...(authentication && { authentication }),
+          },
+        })
+          .schema(models())
+          .authorization((allow) => allow.publicApiKey())
+          .transform().schema;
+
+      expect(build({ strategy: 'rdsIam' })).toEqual(build());
+    });
+  });
 });
